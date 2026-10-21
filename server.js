@@ -190,6 +190,75 @@ app.use(express.static(path.join(__dirname, '.')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
+// Editar dados do usuário
+app.put('/api/usuario/editar', autenticarToken, async (req, res) => {
+  try {
+    const { nome, telefone, email, endereco, medicamento, dosagem, horarios } = req.body;
+    
+    // Atualizar dados do usuário
+    if (nome || telefone || email || endereco) {
+      const campos = [];
+      const valores = [];
+      let indice = 1;
+      
+      if (nome) { campos.push(`nome_completo = $${indice}`); valores.push(nome); indice++; }
+      if (telefone) { campos.push(`telefone = $${indice}`); valores.push(telefone); indice++; }
+      if (email !== undefined) { campos.push(`email = $${indice}`); valores.push(email || null); indice++; }
+      if (endereco) { campos.push(`endereco = $${indice}`); valores.push(endereco); indice++; }
+      
+      valores.push(req.usuario.id);
+      
+      await db.query(
+        `UPDATE usuarios SET ${campos.join(', ')} WHERE id = $${indice}`,
+        valores
+      );
+    }
+
+    // Atualizar medicamento
+    if (medicamento) {
+      const horario1 = horarios?.[0] || null;
+      const horario2 = horarios?.[1] || null;
+      const horario3 = horarios?.[2] || null;
+      const horario4 = horarios?.[3] || null;
+      
+      const existe = await db.query(
+        'SELECT id FROM medicamentos WHERE usuario_id = $1 LIMIT 1',
+        [req.usuario.id]
+      );
+      
+      if (existe.rows.length > 0) {
+        await db.query(`
+          UPDATE medicamentos 
+          SET nome_medicamento = $1, dosagem = $2, horario1 = $3, horario2 = $4, horario3 = $5, horario4 = $6
+          WHERE usuario_id = $7
+        `, [medicamento, dosagem, horario1, horario2, horario3, horario4, req.usuario.id]);
+      } else {
+        await db.query(`
+          INSERT INTO medicamentos (usuario_id, nome_medicamento, dosagem, horario1, horario2, horario3, horario4, lembretes_ativos)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+        `, [req.usuario.id, medicamento, dosagem, horario1, horario2, horario3, horario4]);
+      }
+    }
+
+    // Retornar dados atualizados
+    const usuarioRes = await db.query(
+      'SELECT id, nome_completo, cpf, telefone, email, endereco FROM usuarios WHERE id = $1',
+      [req.usuario.id]
+    );
+    const medRes = await db.query(
+      'SELECT * FROM medicamentos WHERE usuario_id = $1 ORDER BY id DESC LIMIT 1',
+      [req.usuario.id]
+    );
+
+    res.json({
+      mensagem: 'Cadastro atualizado com sucesso! ✅',
+      usuario: usuarioRes.rows[0],
+      medicamento: medRes.rows[0] || null
+    });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
 
 const PORTA = process.env.PORT || 3000;
 
