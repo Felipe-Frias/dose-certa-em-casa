@@ -180,5 +180,17 @@ app.get('/api/status', (req, res) => {
   res.json({status: 'online', programa: 'Dose Certa — Aquidauana/MS'});
 });
 
+// ... todo o código que já está no arquivo ...
+
+// Servir página principal
+const path = require('path');
+app.use(express.static(path.join(__dirname, '.')));
+
+// Rota raiz
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 const PORTA = process.env.PORT || 3000;
+
 app.listen(PORTA, () => console.log(`🚀 Servidor rodando na porta ${PORTA}`));
