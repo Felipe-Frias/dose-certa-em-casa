@@ -37,7 +37,6 @@
             </div>
         </div>
     </div>
-
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
@@ -57,7 +56,6 @@
             </div>
         </div>
     </nav>
-
     <!-- Hero -->
     <section id="inicio" class="hero">
         <div class="container py-5">
@@ -68,11 +66,10 @@
                     <a href="#cadastro" class="btn btn-light btn-lg fw-bold"><i class="fas fa-user-plus me-2"></i>Cadastrar</a>
                     <a href="#login" class="btn btn-outline-light btn-lg fw-bold"><i class="fas fa-sign-in-alt me-2"></i>Já sou cadastrado</a>
                 </div>
-                <p class="mt-3 small">Status do sistema: <span id="apiStatus" class="status-online">verificando...</span></p>
+                <p class="mt-3 small">Status do sistema: <span id="apiStatus">verificando...</span></p>
             </div>
         </div>
     </section>
-
     <!-- Cadastro -->
     <section id="cadastro" class="py-5 bg-light">
         <div class="container">
@@ -121,7 +118,6 @@
             </div>
         </div>
     </section>
-
     <!-- Login -->
     <section id="login" class="py-5">
         <div class="container">
@@ -152,7 +148,6 @@
             </div>
         </div>
     </section>
-
     <!-- Lembretes -->
     <section id="lembretes" class="py-5 bg-light">
         <div class="container">
@@ -166,7 +161,6 @@
             </div>
         </div>
     </section>
-
     <!-- Acompanhamento -->
     <section id="acompanhamento" class="py-5">
         <div class="container">
@@ -179,7 +173,6 @@
             </div>
         </div>
     </section>
-
     <!-- Contato -->
     <section id="contato" class="py-5 bg-light">
         <div class="container">
@@ -191,7 +184,6 @@
             </div>
         </div>
     </section>
-
     <footer>
         <div class="container">
             <div class="row">
@@ -205,7 +197,6 @@
             </div>
         </div>
     </footer>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const API_URL = "https://dose-certa-api-aesd.onrender.com";
@@ -213,12 +204,16 @@
         let usuarioLogado = null;
 
         // Verificar status da API
-        fetch(API + '/status').then(r => r.json()).then(d => {
-            document.getElementById('apiStatus').textContent = '✅ Online - Banco conectado';
-        }).catch(() => {
-            document.getElementById('apiStatus').textContent = '❌ Offline';
-            document.getElementById('apiStatus').style.color = '#dc3545';
-        });
+        fetch(API_URL + '/api/status')
+            .then(r => r.json())
+            .then(d => {
+                document.getElementById('apiStatus').textContent = '✅ Online - Banco conectado';
+                document.getElementById('apiStatus').style.color = '#16a34a';
+            })
+            .catch(() => {
+                document.getElementById('apiStatus').textContent = '❌ Offline';
+                document.getElementById('apiStatus').style.color = '#dc3545';
+            });
 
         // Se já tem token, carregar dados
         if (token) carregarDados();
@@ -238,7 +233,11 @@
                 horarios
             };
             try {
-                const res = await fetch(API + '/cadastro', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(dados) });
+                const res = await fetch(API_URL + '/api/cadastro', { 
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify(dados) 
+                });
                 const r = await res.json();
                 if (!res.ok) throw new Error(r.erro);
                 document.getElementById('cadSucesso').classList.remove('d-none');
@@ -255,10 +254,14 @@
         document.getElementById('formLogin').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                const res = await fetch(API + '/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({
-                    cpf: document.getElementById('loginCpf').value,
-                    senha: document.getElementById('loginSenha').value
-                })});
+                const res = await fetch(API_URL + '/api/login', { 
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({
+                        cpf: document.getElementById('loginCpf').value,
+                        senha: document.getElementById('loginSenha').value
+                    })
+                });
                 const r = await res.json();
                 if (!res.ok) throw new Error(r.erro);
                 token = r.token;
@@ -276,7 +279,9 @@
 
         async function carregarDados() {
             try {
-                const res = await fetch(API + '/usuario/dados', { headers: {'Authorization': 'Bearer ' + token} });
+                const res = await fetch(API_URL + '/api/usuario/dados', { 
+                    headers: {'Authorization': 'Bearer ' + token} 
+                });
                 if (!res.ok) throw new Error('Sessão expirada');
                 const dados = await res.json();
                 usuarioLogado = dados.usuario;
@@ -285,7 +290,8 @@
                 
                 let htmlMed = '';
                 let htmlLemb = '';
-                dados.medicamentos.forEach(m => {
+                const meds = dados.medicamentos || [];
+                meds.forEach(m => {
                     htmlMed += `<p><strong>${m.nome_medicamento}</strong> - ${m.dosagem || ''}</p>`;
                     htmlLemb += `<p class="mb-2"><strong>${m.nome_medicamento}</strong></p><ul class="list-unstyled">`;
                     [m.horario1, m.horario2, m.horario3, m.horario4].filter(h => h).forEach((h, i) => {
@@ -313,9 +319,10 @@
             const agora = new Date();
             const horaAtual = String(agora.getHours()).padStart(2,'0') + ':' + String(agora.getMinutes()).padStart(2,'0');
             try {
-                const res = await fetch(API + '/usuario/dados', { headers: {'Authorization': 'Bearer ' + token} });
+                const res = await fetch(API_URL + '/api/usuario/dados', { headers: {'Authorization': 'Bearer ' + token} });
                 const dados = await res.json();
-                dados.medicamentos.forEach(m => {
+                const meds = dados.medicamentos || [];
+                meds.forEach(m => {
                     if (!m.lembretes_ativos) return;
                     [m.horario1, m.horario2, m.horario3, m.horario4].forEach(h => {
                         if (h && h.substring(0,5) === horaAtual) dispararAlarme(m.nome_medicamento);
@@ -327,14 +334,26 @@
         function dispararAlarme(med) {
             document.getElementById('reminderText').innerHTML = `Hora de tomar <strong>${med}</strong>!`;
             document.getElementById('reminderAlert').style.display = 'block';
-            if (Notification.permission === 'granted') new Notification('💊 Dose Certa', { body: 'Tomar ' + med + ' agora' });
+            if (Notification.permission === 'granted') {
+                new Notification('💊 Dose Certa', { body: 'Tomar ' + med + ' agora' });
+            }
         }
-        function confirmarTomou() { document.getElementById('reminderAlert').style.display = 'none'; }
+
+        function confirmarTomou() { 
+            document.getElementById('reminderAlert').style.display = 'none'; 
+        }
+
         function adiarLembrete() {
             document.getElementById('reminderAlert').style.display = 'none';
-            setTimeout(() => { if (usuarioLogado) document.getElementById('reminderAlert').style.display = 'block'; }, 15*60*1000);
+            setTimeout(() => { 
+                if (usuarioLogado) document.getElementById('reminderAlert').style.display = 'block'; 
+            }, 15*60*1000);
         }
-        function pedirPermissao() { if (Notification.permission === 'default') Notification.requestPermission(); }
+
+        function pedirPermissao() { 
+            if (Notification.permission === 'default') Notification.requestPermission(); 
+        }
+
         function rastrear() {
             const cod = document.getElementById('codRastreio').value;
             if (!cod) { alert('Informe o código'); return; }
