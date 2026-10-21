@@ -1,365 +1,66 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Programa Dose Certa – Aquidauana/MS</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root { --primary: #2563eb; --secondary: #16a34a; --accent: #f59e0b; --light: #f0f7ff; --dark: #1e293b; }
-        body { font-family: 'Segoe UI', Roboto, sans-serif; color: var(--dark); background-color: #f8fafc; }
-        .navbar { background: linear-gradient(135deg, var(--primary), #1d4ed8); box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .navbar-brand { font-weight: 700; font-size: 1.5rem; }
-        .hero { background: linear-gradient(rgba(37, 99, 235, 0.9), rgba(29, 78, 216, 0.9)), url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=1200') center/cover; min-height: 45vh; display: flex; align-items: center; color: white; }
-        .card-custom { border: none; border-radius: 16px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); transition: transform 0.3s; margin-bottom: 24px; }
-        .card-custom:hover { transform: translateY(-5px); }
-        .btn-primary-custom { background-color: var(--primary); border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; color: white; }
-        .btn-primary-custom:hover { background-color: #1d4ed8; color: white; }
-        .btn-success-custom { background-color: var(--secondary); border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; color: white; }
-        .alert-reminder { position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; border-radius: 12px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); max-width: 350px; }
-        .section-title { position: relative; display: inline-block; margin-bottom: 30px; }
-        .section-title::after { content: ''; position: absolute; bottom: -8px; left: 0; width: 60%; height: 4px; background-color: var(--accent); border-radius: 2px; }
-        footer { background-color: var(--dark); color: white; padding: 40px 0 20px; margin-top: 60px; }
-        .status-online { color: #16a34a; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <!-- Alarme flutuante -->
-    <div id="reminderAlert" class="alert alert-warning alert-reminder p-3">
-        <div class="d-flex align-items-center">
-            <i class="fas fa-bell fa-2x me-3"></i>
-            <div>
-                <h5 class="mb-1"><strong>Hora do Medicamento!</strong></h5>
-                <p id="reminderText" class="mb-0"></p>
-                <button class="btn btn-sm btn-success mt-2" onclick="confirmarTomou()"><i class="fas fa-check me-1"></i>Já tomei</button>
-                <button class="btn btn-sm btn-outline-secondary mt-2 ms-1" onclick="adiarLembrete()"><i class="fas fa-clock me-1"></i>Adiar 15 min</button>
-            </div>
-        </div>
-    </div>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#"><i class="fas fa-capsules me-2"></i>Dose Certa</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#inicio">Início</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#cadastro">Cadastro</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#login">Entrar</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#lembretes">Lembretes</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#acompanhamento">Entregas</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#contato">Contato</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <!-- Hero -->
-    <section id="inicio" class="hero">
-        <div class="container py-5">
-            <div class="col-lg-8">
-                <h1 class="display-4 fw-bold mb-4">Programa Dose Certa<br>Aquidauana – MS</h1>
-                <p class="lead mb-4">Medicamento entregue em casa pelos Correios + lembretes na hora certa.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="#cadastro" class="btn btn-light btn-lg fw-bold"><i class="fas fa-user-plus me-2"></i>Cadastrar</a>
-                    <a href="#login" class="btn btn-outline-light btn-lg fw-bold"><i class="fas fa-sign-in-alt me-2"></i>Já sou cadastrado</a>
-                </div>
-                <p class="mt-3 small">Status do sistema: <span id="apiStatus">verificando...</span></p>
-            </div>
-        </div>
-    </section>
-    <!-- Cadastro -->
-    <section id="cadastro" class="py-5 bg-light">
-        <div class="container">
-            <h2 class="section-title fw-bold">Cadastro</h2>
-            <p class="text-muted mb-4">Preencha seus dados para participar do programa</p>
-            <div class="row">
-                <div class="col-lg-8">
-                    <div class="card card-custom p-4">
-                        <form id="formCadastro">
-                            <div class="row mb-3">
-                                <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Nome Completo *</label><input type="text" class="form-control" id="cadNome" required></div>
-                                <div class="col-md-6 mb-3"><label class="form-label fw-semibold">CPF *</label><input type="text" class="form-control" id="cadCpf" placeholder="000.000.000-00" required></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Telefone / WhatsApp *</label><input type="tel" class="form-control" id="cadTelefone" placeholder="(67) 9XXXX-XXXX" required></div>
-                                <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Email</label><input type="email" class="form-control" id="cadEmail"></div>
-                            </div>
-                            <div class="mb-3"><label class="form-label fw-semibold">Endereço Completo *</label><input type="text" class="form-control" id="cadEndereco" placeholder="Rua, nº, Bairro, Aquidauana-MS" required></div>
-                            <div class="row mb-3">
-                                <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Nome do Medicamento *</label><input type="text" class="form-control" id="cadMedicamento" required></div>
-                                <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Dosagem</label><input type="text" class="form-control" id="cadDosagem" placeholder="Ex: 1 comprimido de 500mg"></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-3 mb-3"><label class="form-label fw-semibold">Dose 1 *</label><input type="time" class="form-control" id="cadH1" required></div>
-                                <div class="col-md-3 mb-3"><label class="form-label fw-semibold">Dose 2</label><input type="time" class="form-control" id="cadH2"></div>
-                                <div class="col-md-3 mb-3"><label class="form-label fw-semibold">Dose 3</label><input type="time" class="form-control" id="cadH3"></div>
-                                <div class="col-md-3 mb-3"><label class="form-label fw-semibold">Dose 4</label><input type="time" class="form-control" id="cadH4"></div>
-                            </div>
-                            <button type="submit" class="btn btn-primary-custom w-100"><i class="fas fa-save me-2"></i>Cadastrar no Sistema</button>
-                        </form>
-                        <div id="cadSucesso" class="alert alert-success mt-4 d-none"><i class="fas fa-check-circle me-2"></i>Cadastro realizado! Faça login com seu CPF (senha = números do CPF).</div>
-                        <div id="cadErro" class="alert alert-danger mt-4 d-none"></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card card-custom p-4">
-                        <h5 class="fw-bold mb-3"><i class="fas fa-info-circle text-primary me-2"></i>Como funciona?</h5>
-                        <ol class="ps-3">
-                            <li class="mb-2">Você se cadastra informando medicamento e horários</li>
-                            <li class="mb-2">A equipe confirma e separa o medicamento</li>
-                            <li class="mb-2">Os Correios entregam na sua casa</li>
-                            <li class="mb-2">O sistema avisa na hora de tomar</li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    <!-- Login -->
-    <section id="login" class="py-5">
-        <div class="container">
-            <h2 class="section-title fw-bold">Entrar no Sistema</h2>
-            <p class="text-muted mb-4">Acesse com seu CPF para gerenciar lembretes e entregas</p>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card card-custom p-4">
-                        <form id="formLogin">
-                            <div class="mb-3"><label class="form-label fw-semibold">CPF</label><input type="text" class="form-control" id="loginCpf" placeholder="000.000.000-00" required></div>
-                            <div class="mb-3"><label class="form-label fw-semibold">Senha (números do CPF no primeiro acesso)</label><input type="password" class="form-control" id="loginSenha" required></div>
-                            <button type="submit" class="btn btn-success-custom w-100"><i class="fas fa-sign-in-alt me-2"></i>Entrar</button>
-                        </form>
-                        <div id="loginSucesso" class="alert alert-success mt-4 d-none"></div>
-                        <div id="loginErro" class="alert alert-danger mt-4 d-none"></div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card card-custom p-4" id="areaLogado" style="display:none;">
-                        <h5 class="fw-bold mb-3"><i class="fas fa-user-circle text-success me-2"></i>Área do Usuário</h5>
-                        <p id="usuarioNome" class="fw-bold"></p>
-                        <hr>
-                        <h6 class="fw-bold">Meus Medicamentos:</h6>
-                        <div id="listaMedicamentos"></div>
-                        <button class="btn btn-outline-danger btn-sm mt-3" onclick="sair()"><i class="fas fa-sign-out-alt me-1"></i>Sair</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    <!-- Lembretes -->
-    <section id="lembretes" class="py-5 bg-light">
-        <div class="container">
-            <h2 class="section-title fw-bold">Lembretes de Medicação</h2>
-            <p class="text-muted mb-4">Seus horários de medicação</p>
-            <div class="card card-custom p-4">
-                <div id="listaLembretes"><p class="text-muted">Faça login para ver seus horários.</p></div>
-                <hr>
-                <div class="alert alert-info"><i class="fas fa-info-circle me-1"></i> Mantenha esta página aberta para receber os alertas. Permita notificações do navegador!
-                <button class="btn btn-sm btn-primary ms-2" onclick="pedirPermissao()">Permitir Notificações</button></div>
-            </div>
-        </div>
-    </section>
-    <!-- Acompanhamento -->
-    <section id="acompanhamento" class="py-5">
-        <div class="container">
-            <h2 class="section-title fw-bold">Acompanhar Entrega</h2>
-            <p class="text-muted mb-4">Rastreie seu pedido dos Correios</p>
-            <div class="card card-custom p-4 col-md-6">
-                <div class="mb-3"><label class="form-label fw-semibold">Código de Rastreio</label><input type="text" class="form-control" id="codRastreio" placeholder="Ex: BR123456789MS"></div>
-                <button class="btn btn-success-custom w-100" onclick="rastrear()"><i class="fas fa-search me-2"></i>Verificar</button>
-                <div id="statusEntrega" class="mt-4 d-none"></div>
-            </div>
-        </div>
-    </section>
-    <!-- Contato -->
-    <section id="contato" class="py-5 bg-light">
-        <div class="container">
-            <h2 class="section-title fw-bold">Contato</h2>
-            <div class="card card-custom p-4 col-md-6">
-                <p class="mb-2"><i class="fas fa-map-marker-alt text-primary me-2"></i> Secretaria de Saúde – Aquidauana/MS</p>
-                <p class="mb-2"><i class="fas fa-phone text-primary me-2"></i> (67) 3241-XXXX</p>
-                <p class="mb-0"><i class="fab fa-whatsapp text-success me-2"></i> WhatsApp: (67) 9XXXX-XXXX</p>
-            </div>
-        </div>
-    </section>
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5 class="fw-bold mb-3"><i class="fas fa-capsules me-2"></i>Programa Dose Certa</h5>
-                    <p class="text-muted">Prefeitura de Aquidauana – MS<br>Entrega pelos Correios + Lembretes de medicação</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="mb-1">© 2026 – Todos os direitos reservados</p>
-                </div>
-            </div>
-        </div>
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const API_URL = "https://dose-certa-api-aesd.onrender.com";
-        let token = localStorage.getItem('doseCertaToken');
-        let usuarioLogado = null;
+// Editar dados do usuário
+app.put('/api/usuario/editar', autenticarToken, async (req, res) => {
+  try {
+    const { nome, telefone, email, endereco, medicamento, dosagem, horarios } = req.body;
+    
+    if (nome || telefone || email !== undefined || endereco) {
+      const campos = [];
+      const valores = [];
+      let indice = 1;
+      
+      if (nome) { campos.push(`nome_completo = $${indice}`); valores.push(nome); indice++; }
+      if (telefone) { campos.push(`telefone = $${indice}`); valores.push(telefone); indice++; }
+      if (email !== undefined) { campos.push(`email = $${indice}`); valores.push(email || null); indice++; }
+      if (endereco) { campos.push(`endereco = $${indice}`); valores.push(endereco); indice++; }
+      
+      valores.push(req.usuario.id);
+      
+      await db.query(
+        `UPDATE usuarios SET ${campos.join(', ')} WHERE id = $${indice}`,
+        valores
+      );
+    }
 
-        // Verificar status da API
-        fetch(API_URL + '/api/status')
-            .then(r => r.json())
-            .then(d => {
-                document.getElementById('apiStatus').textContent = '✅ Online - Banco conectado';
-                document.getElementById('apiStatus').style.color = '#16a34a';
-            })
-            .catch(() => {
-                document.getElementById('apiStatus').textContent = '❌ Offline';
-                document.getElementById('apiStatus').style.color = '#dc3545';
-            });
+    if (medicamento) {
+      const horario1 = horarios?.[0] || null;
+      const horario2 = horarios?.[1] || null;
+      const horario3 = horarios?.[2] || null;
+      const horario4 = horarios?.[3] || null;
+      
+      const existe = await db.query(
+        'SELECT id FROM medicamentos WHERE usuario_id = $1 LIMIT 1',
+        [req.usuario.id]
+      );
+      
+      if (existe.rows.length > 0) {
+        await db.query(`
+          UPDATE medicamentos 
+          SET nome_medicamento = $1, dosagem = $2, horario1 = $3, horario2 = $4, horario3 = $5, horario4 = $6
+          WHERE usuario_id = $7
+        `, [medicamento, dosagem, horario1, horario2, horario3, horario4, req.usuario.id]);
+      } else {
+        await db.query(`
+          INSERT INTO medicamentos (usuario_id, nome_medicamento, dosagem, horario1, horario2, horario3, horario4, lembretes_ativos)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+        `, [req.usuario.id, medicamento, dosagem, horario1, horario2, horario3, horario4]);
+      }
+    }
 
-        // Se já tem token, carregar dados
-        if (token) carregarDados();
+    const usuarioRes = await db.query(
+      'SELECT id, nome_completo, cpf, telefone, email, endereco FROM usuarios WHERE id = $1',
+      [req.usuario.id]
+    );
+    const medRes = await db.query(
+      'SELECT * FROM medicamentos WHERE usuario_id = $1 ORDER BY id DESC LIMIT 1',
+      [req.usuario.id]
+    );
 
-        // Cadastro
-        document.getElementById('formCadastro').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const horarios = ['cadH1','cadH2','cadH3','cadH4'].map(id => document.getElementById(id).value).filter(h => h);
-            const dados = {
-                nome: document.getElementById('cadNome').value,
-                cpf: document.getElementById('cadCpf').value,
-                telefone: document.getElementById('cadTelefone').value,
-                email: document.getElementById('cadEmail').value,
-                endereco: document.getElementById('cadEndereco').value,
-                medicamento: document.getElementById('cadMedicamento').value,
-                dosagem: document.getElementById('cadDosagem').value,
-                horarios
-            };
-            try {
-                const res = await fetch(API_URL + '/api/cadastro', { 
-                    method: 'POST', 
-                    headers: {'Content-Type':'application/json'}, 
-                    body: JSON.stringify(dados) 
-                });
-                const r = await res.json();
-                if (!res.ok) throw new Error(r.erro);
-                document.getElementById('cadSucesso').classList.remove('d-none');
-                document.getElementById('cadErro').classList.add('d-none');
-                document.getElementById('formCadastro').reset();
-                setTimeout(() => document.getElementById('cadSucesso').classList.add('d-none'), 8000);
-            } catch (err) {
-                document.getElementById('cadErro').textContent = '❌ ' + err.message;
-                document.getElementById('cadErro').classList.remove('d-none');
-            }
-        });
-
-        // Login
-        document.getElementById('formLogin').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const res = await fetch(API_URL + '/api/login', { 
-                    method: 'POST', 
-                    headers: {'Content-Type':'application/json'}, 
-                    body: JSON.stringify({
-                        cpf: document.getElementById('loginCpf').value,
-                        senha: document.getElementById('loginSenha').value
-                    })
-                });
-                const r = await res.json();
-                if (!res.ok) throw new Error(r.erro);
-                token = r.token;
-                usuarioLogado = r.usuario;
-                localStorage.setItem('doseCertaToken', token);
-                document.getElementById('loginSucesso').innerHTML = '✅ Bem-vindo, ' + r.usuario.nome + '!';
-                document.getElementById('loginSucesso').classList.remove('d-none');
-                document.getElementById('loginErro').classList.add('d-none');
-                carregarDados();
-            } catch (err) {
-                document.getElementById('loginErro').textContent = '❌ ' + err.message;
-                document.getElementById('loginErro').classList.remove('d-none');
-            }
-        });
-
-        async function carregarDados() {
-            try {
-                const res = await fetch(API_URL + '/api/usuario/dados', { 
-                    headers: {'Authorization': 'Bearer ' + token} 
-                });
-                if (!res.ok) throw new Error('Sessão expirada');
-                const dados = await res.json();
-                usuarioLogado = dados.usuario;
-                document.getElementById('areaLogado').style.display = 'block';
-                document.getElementById('usuarioNome').textContent = '👤 ' + dados.usuario.nome_completo;
-                
-                let htmlMed = '';
-                let htmlLemb = '';
-                const meds = dados.medicamentos || [];
-                meds.forEach(m => {
-                    htmlMed += `<p><strong>${m.nome_medicamento}</strong> - ${m.dosagem || ''}</p>`;
-                    htmlLemb += `<p class="mb-2"><strong>${m.nome_medicamento}</strong></p><ul class="list-unstyled">`;
-                    [m.horario1, m.horario2, m.horario3, m.horario4].filter(h => h).forEach((h, i) => {
-                        htmlLemb += `<li class="mb-1"><i class="fas fa-clock text-warning me-2"></i>Dose ${i+1}: ${h.substring(0,5)}</li>`;
-                    });
-                    htmlLemb += '</ul><hr>';
-                });
-                document.getElementById('listaMedicamentos').innerHTML = htmlMed || '<p class="text-muted">Nenhum medicamento cadastrado.</p>';
-                document.getElementById('listaLembretes').innerHTML = htmlLemb || '<p class="text-muted">Nenhum horário cadastrado.</p>';
-            } catch (err) {
-                localStorage.removeItem('doseCertaToken');
-                token = null;
-            }
-        }
-
-        function sair() {
-            localStorage.removeItem('doseCertaToken');
-            token = null;
-            location.reload();
-        }
-
-        // Verificar lembretes a cada 30 segundos
-        setInterval(async () => {
-            if (!token) return;
-            const agora = new Date();
-            const horaAtual = String(agora.getHours()).padStart(2,'0') + ':' + String(agora.getMinutes()).padStart(2,'0');
-            try {
-                const res = await fetch(API_URL + '/api/usuario/dados', { headers: {'Authorization': 'Bearer ' + token} });
-                const dados = await res.json();
-                const meds = dados.medicamentos || [];
-                meds.forEach(m => {
-                    if (!m.lembretes_ativos) return;
-                    [m.horario1, m.horario2, m.horario3, m.horario4].forEach(h => {
-                        if (h && h.substring(0,5) === horaAtual) dispararAlarme(m.nome_medicamento);
-                    });
-                });
-            } catch(e) {}
-        }, 30000);
-
-        function dispararAlarme(med) {
-            document.getElementById('reminderText').innerHTML = `Hora de tomar <strong>${med}</strong>!`;
-            document.getElementById('reminderAlert').style.display = 'block';
-            if (Notification.permission === 'granted') {
-                new Notification('💊 Dose Certa', { body: 'Tomar ' + med + ' agora' });
-            }
-        }
-
-        function confirmarTomou() { 
-            document.getElementById('reminderAlert').style.display = 'none'; 
-        }
-
-        function adiarLembrete() {
-            document.getElementById('reminderAlert').style.display = 'none';
-            setTimeout(() => { 
-                if (usuarioLogado) document.getElementById('reminderAlert').style.display = 'block'; 
-            }, 15*60*1000);
-        }
-
-        function pedirPermissao() { 
-            if (Notification.permission === 'default') Notification.requestPermission(); 
-        }
-
-        function rastrear() {
-            const cod = document.getElementById('codRastreio').value;
-            if (!cod) { alert('Informe o código'); return; }
-            document.getElementById('statusEntrega').classList.remove('d-none');
-            document.getElementById('statusEntrega').innerHTML = '<div class="alert alert-info"><i class="fas fa-truck me-2"></i>Pedido ' + cod + ' - Em trânsito pelos Correios. Entrega prevista para Aquidauana-MS.</div>';
-        }
-    </script>
-</body>
-</html>
+    res.json({
+      mensagem: 'Cadastro atualizado com sucesso! ✅',
+      usuario: usuarioRes.rows[0],
+      medicamento: medRes.rows[0] || null
+    });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
